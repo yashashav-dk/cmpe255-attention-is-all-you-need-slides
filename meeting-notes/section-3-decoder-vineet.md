@@ -63,7 +63,7 @@
 - **K** from encoder = "What does each source word contain?"
 - **V** from encoder = "What information should I extract?"
 
-**Key insight:** Each output token attends to the relevant parts of the input. For example, when generating "molto" (Italian for "much"), the decoder attends strongly to "much" in the encoder output.
+**Key insight:** Each output token attends to the relevant parts of the input. For example, when generating "vola" (Italian for "flies"), the decoder attends strongly to "flies" in the encoder output.
 
 ## Slide 21 — Linear Layer & Softmax
 
@@ -81,13 +81,13 @@
 
 ## Slide 22 — Training: Teacher Forcing
 
-**Example:** "I love you very much" -> "Ti amo molto"
+**Example:** "Time flies very fast" -> "Il tempo vola"
 
 **Walk through the diagram:**
-- **Encoder** processes the source sentence ("I love you very much") — produces K, V
-- **Decoder** receives the shifted target ("<SOS> Ti amo molto") — the target shifted right by one position
-- **Linear + Softmax** produces predictions: "Ti amo molto <EOS>"
-- **Cross-Entropy Loss** compares predictions vs. ground truth "Ti amo molto <EOS>"
+- **Encoder** processes the source sentence ("Time flies very fast") — produces K, V
+- **Decoder** receives the shifted target ("<SOS> Il tempo vola") — the target shifted right by one position
+- **Linear + Softmax** produces predictions: "Il tempo vola <EOS>"
+- **Cross-Entropy Loss** compares predictions vs. ground truth "Il tempo vola <EOS>"
 
 **Critical insight — "All in ONE time step!":**
 - During training, the decoder sees the **entire target** (shifted right) at once
@@ -103,10 +103,10 @@
 
 | Step | Decoder Input | Output Token |
 |------|--------------|-------------|
-| 1 | \<SOS\> | Ti |
-| 2 | \<SOS\> Ti | amo |
-| 3 | \<SOS\> Ti amo | molto |
-| 4 | \<SOS\> Ti amo molto | \<EOS\> |
+| 1 | \<SOS\> | Il |
+| 2 | \<SOS\> Il | tempo |
+| 3 | \<SOS\> Il tempo | vola |
+| 4 | \<SOS\> Il tempo vola | \<EOS\> |
 
 **Key insight:** The **encoder runs once** — its output is reused at every step. Only the decoder runs repeatedly, appending each new token to its input.
 
@@ -120,13 +120,13 @@
 - Always pick the top-1 (highest probability) token at each step
 - Fast but can miss better overall sequences
 - Gets stuck in local optima
-- Example: step 1: argmax -> "Ti", step 2: argmax -> "amo", step 3: argmax -> "molto"
+- Example: step 1: argmax -> "Il", step 2: argmax -> "tempo", step 3: argmax -> "vola"
 
 **Beam Search with B=3 (right):**
 - Keep top B candidates at each step
 - Explore multiple paths in parallel
 - Pick the best complete sequence at the end
-- Example: step 1: ["Ti", "Il", "Io"], step 2: ["Ti amo", "Ti vog.."], step 3: pick best
+- Example: step 1: ["Il", "Le", "Un"], step 2: ["Il tempo", "Il vol.."], step 3: pick best
 
 **Talking point:** "Greedy is like always taking the nearest exit on the highway — you might miss a faster route. Beam search explores multiple routes simultaneously."
 
@@ -135,14 +135,14 @@
 **Complete encoder-decoder architecture in one diagram:**
 
 **Left column (Encoder):**
-- Source: "I love you" feeds into Input Embedding + PE
+- Source: "Time flies" feeds into Input Embedding + PE
 - Self-Attention -> Add & Norm -> Feed-Forward -> Add & Norm
 - x6 layers -> Encoder Output
 
 **Right column (Decoder):**
-- Target: "<SOS> Ti amo" feeds into Output Embedding + PE
+- Target: "<SOS> Il tempo" feeds into Output Embedding + PE
 - Masked Self-Attn -> Add & Norm -> Cross-Attention -> Add&Norm + FFN
-- x6 layers -> Linear + Softmax -> "Ti amo molto <EOS>"
+- x6 layers -> Linear + Softmax -> "Il tempo vola <EOS>"
 
 **The dashed K,V arrow:** Encoder output feeds Keys and Values into the decoder's Cross-Attention layer.
 

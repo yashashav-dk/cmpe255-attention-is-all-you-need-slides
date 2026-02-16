@@ -761,7 +761,7 @@ window.MathJax = {
 <!-- SLIDE: TRAINING -->
 <section>
   <h2>Training: Teacher Forcing</h2>
-  <p style="font-size:0.45em;">Example: <strong>"I love you very much"</strong> &#x2192; <strong>"Ti amo molto"</strong></p>
+  <p style="font-size:0.45em;">Example: <strong>"Time flies very fast"</strong> &#x2192; <strong>"Il tempo vola"</strong></p>
   <div class="diagram" style="max-width:100%; padding:0.5em 0.8em;">
     <svg viewBox="0 0 460 165" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
       <defs><marker id="a5" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
@@ -769,7 +769,7 @@ window.MathJax = {
         <rect x="10" y="48" width="105" height="32" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
         <text x="63" y="63" fill="#1e293b" font-weight="700" font-size="9">Encoder</text>
         <text x="63" y="74" fill="#64748b" font-size="7">Processes source</text>
-        <text x="63" y="40" fill="#2563eb" font-size="8" font-weight="600">"I love you very much"</text>
+        <text x="63" y="40" fill="#2563eb" font-size="8" font-weight="600">"Time flies very fast"</text>
 
         <line x1="115" y1="64" x2="145" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
         <text x="130" y="56" fill="#64748b" font-size="8" font-weight="600">K, V</text>
@@ -777,7 +777,7 @@ window.MathJax = {
         <rect x="145" y="48" width="115" height="32" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
         <text x="203" y="63" fill="#1e293b" font-weight="700" font-size="9">Decoder</text>
         <text x="203" y="74" fill="#64748b" font-size="7">Shifted target</text>
-        <text x="203" y="40" fill="#059669" font-size="8" font-weight="600">"&lt;SOS&gt; Ti amo molto"</text>
+        <text x="203" y="40" fill="#059669" font-size="8" font-weight="600">"&lt;SOS&gt; Il tempo vola"</text>
 
         <line x1="260" y1="64" x2="285" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
         <rect x="285" y="48" width="70" height="32" rx="6" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
@@ -786,10 +786,10 @@ window.MathJax = {
 
         <line x1="355" y1="64" x2="375" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
         <text x="420" y="60" fill="#1e293b" font-weight="600" font-size="8">Predicted:</text>
-        <text x="420" y="72" fill="#059669" font-size="8">"Ti amo molto &lt;EOS&gt;"</text>
+        <text x="420" y="72" fill="#059669" font-size="8">"Il tempo vola &lt;EOS&gt;"</text>
 
         <text x="420" y="100" fill="#dc2626" font-weight="700" font-size="8">Cross-Entropy Loss</text>
-        <text x="420" y="112" fill="#64748b" font-size="7">vs. "Ti amo molto &lt;EOS&gt;"</text>
+        <text x="420" y="112" fill="#64748b" font-size="7">vs. "Il tempo vola &lt;EOS&gt;"</text>
         <line x1="420" y1="78" x2="420" y2="90" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a5)"/>
 
         <rect x="10" y="105" width="280" height="45" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
@@ -807,10 +807,10 @@ window.MathJax = {
   <p style="font-size:0.45em;">Unlike training, inference generates tokens <strong>one at a time</strong>:</p>
   <table style="font-size:0.45em; margin:0.15em auto; width:80%;">
     <tr><th style="width:12%;">Step</th><th style="width:50%;">Decoder Input</th><th style="width:38%;">Output Token</th></tr>
-    <tr><td><strong>1</strong></td><td>&lt;SOS&gt;</td><td style="color:var(--green); font-weight:700;">Ti</td></tr>
-    <tr><td><strong>2</strong></td><td>&lt;SOS&gt; Ti</td><td style="color:var(--green); font-weight:700;">amo</td></tr>
-    <tr><td><strong>3</strong></td><td>&lt;SOS&gt; Ti amo</td><td style="color:var(--green); font-weight:700;">molto</td></tr>
-    <tr><td><strong>4</strong></td><td>&lt;SOS&gt; Ti amo molto</td><td style="color:var(--red); font-weight:700;">&lt;EOS&gt; &#x2713;</td></tr>
+    <tr><td><strong>1</strong></td><td>&lt;SOS&gt;</td><td style="color:var(--green); font-weight:700;">Il</td></tr>
+    <tr><td><strong>2</strong></td><td>&lt;SOS&gt; Il</td><td style="color:var(--green); font-weight:700;">tempo</td></tr>
+    <tr><td><strong>3</strong></td><td>&lt;SOS&gt; Il tempo</td><td style="color:var(--green); font-weight:700;">vola</td></tr>
+    <tr><td><strong>4</strong></td><td>&lt;SOS&gt; Il tempo vola</td><td style="color:var(--red); font-weight:700;">&lt;EOS&gt; &#x2713;</td></tr>
   </table>
   <div class="insight-box">
     The <strong>encoder runs once</strong> — output reused at every step. Only the decoder runs repeatedly, appending each new token.
@@ -829,9 +829,9 @@ window.MathJax = {
         <li>Gets stuck in local optima</li>
       </ul>
       <div style="font-family:monospace; font-size:0.4em; background:#fef2f2; padding:0.25em; border-radius:4px; margin-top:0.15em;">
-        step 1: argmax &#x2192; "Ti"<br>
-        step 2: argmax &#x2192; "amo"<br>
-        step 3: argmax &#x2192; "molto"
+        step 1: argmax &#x2192; "Il"<br>
+        step 2: argmax &#x2192; "tempo"<br>
+        step 3: argmax &#x2192; "vola"
       </div>
     </div>
     <div class="col">
@@ -842,8 +842,8 @@ window.MathJax = {
         <li>Pick best complete sequence</li>
       </ul>
       <div style="font-family:monospace; font-size:0.4em; background:#ecfdf5; padding:0.25em; border-radius:4px; margin-top:0.15em;">
-        step 1: ["Ti", "Il", "Io"]<br>
-        step 2: ["Ti amo", "Ti vog.."]<br>
+        step 1: ["Il", "Le", "Un"]<br>
+        step 2: ["Il tempo", "Il vol.."]<br>
         step 3: pick best sequence
       </div>
     </div>
@@ -858,7 +858,7 @@ window.MathJax = {
       <defs><marker id="a6" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
       <g font-family="system-ui" font-size="10" text-anchor="middle">
         <!-- Source -->
-        <text x="110" y="228" fill="#2563eb" font-weight="700" font-size="11">Source: "I love you"</text>
+        <text x="110" y="228" fill="#2563eb" font-weight="700" font-size="11">Source: "Time flies"</text>
 
         <!-- Encoder column -->
         <rect x="40" y="192" width="130" height="20" rx="4" fill="white" stroke="#2563eb" stroke-width="1.2"/>
@@ -884,7 +884,7 @@ window.MathJax = {
         <text x="105" y="50" fill="white" font-weight="700" font-size="10">Encoder Output</text>
 
         <!-- Target -->
-        <text x="390" y="228" fill="#059669" font-weight="700" font-size="11">Target: "&lt;SOS&gt; Ti amo"</text>
+        <text x="390" y="228" fill="#059669" font-weight="700" font-size="11">Target: "&lt;SOS&gt; Il tempo"</text>
 
         <!-- Decoder column -->
         <rect x="325" y="192" width="130" height="20" rx="4" fill="white" stroke="#059669" stroke-width="1.2"/>
@@ -913,7 +913,7 @@ window.MathJax = {
         <rect x="325" y="36" width="130" height="20" rx="4" fill="#059669"/>
         <text x="390" y="50" fill="white" font-weight="700" font-size="10">Linear + Softmax</text>
 
-        <text x="390" y="25" fill="#d97706" font-weight="700" font-size="11">&#x2192; "Ti amo molto &lt;EOS&gt;"</text>
+        <text x="390" y="25" fill="#d97706" font-weight="700" font-size="11">&#x2192; "Il tempo vola &lt;EOS&gt;"</text>
       </g>
     </svg>
   </div>
