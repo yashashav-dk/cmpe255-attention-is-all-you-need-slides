@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attention Is All You Need — CMPE 257</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+<style>
+  :root {
+    --accent: #2563eb;
+    --accent-light: #dbeafe;
+    --dark: #1e293b;
+    --gray: #64748b;
+    --green: #059669;
+    --red: #dc2626;
+    --orange: #d97706;
+  }
+  .reveal { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+  .reveal .slides section {
+    padding: 0.25em 0.5em !important;
+    box-sizing: border-box;
+    overflow: hidden;
+    font-size: 1.25em;
+  }
+  .reveal h1 { font-size: 1.3em; color: var(--dark); font-weight: 800; margin-bottom: 0.2em; }
+  .reveal h2 { font-size: 0.95em; color: var(--dark); font-weight: 700; margin-bottom: 0.25em; }
+  .reveal h3 { font-size: 0.65em; color: var(--accent); font-weight: 600; margin-bottom: 0.1em; }
+  .reveal p, .reveal li { font-size: 0.5em; color: #334155; line-height: 1.5; }
+  .reveal ul, .reveal ol { margin-left: 0.4em; }
+  .reveal li { margin-bottom: 0.1em; }
+
+  /* Presenter badge — only on title/section/thank you */
+  .presenter {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 0.1em 0.5em;
+    border-radius: 999px;
+    font-size: 0.4em;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .presenter.ekant   { background: #7c3aed; }
+  .presenter.saransh { background: #2563eb; }
+  .presenter.vineet  { background: #059669; }
+  .presenter.yashashav { background: #d97706; }
+
+  /* Section divider */
+  .section-divider {
+    background: linear-gradient(135deg, var(--dark) 0%, #334155 100%) !important;
+  }
+  .section-divider h2 { color: white !important; font-size: 1.15em !important; }
+  .section-divider p { color: #cbd5e1 !important; font-size: 0.55em !important; }
+
+  /* Tables */
+  .reveal table { font-size: 0.45em; border-collapse: collapse; width: 100%; max-width: 100%; margin: 0.2em 0; table-layout: fixed; }
+  .reveal th { background: var(--accent); color: white; padding: 0.3em 0.5em; text-align: left; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+  .reveal td { padding: 0.25em 0.5em; border-bottom: 1px solid #e2e8f0; overflow: hidden; text-overflow: ellipsis; }
+  .reveal tr:nth-child(even) td { background: #f8fafc; }
+
+  /* Boxes */
+  .insight-box {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    padding: 0.3em 0.6em;
+    border-radius: 0 6px 6px 0;
+    margin: 0.25em 0;
+    font-size: 0.45em;
+    text-align: left;
+    color: #334155;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .formula-box {
+    background: #fef3c7;
+    border: 1.5px solid var(--orange);
+    border-radius: 6px;
+    padding: 0.2em 0.5em;
+    margin: 0.2em auto;
+    display: inline-block;
+    font-size: 0.65em;
+    max-width: 95%;
+    overflow: hidden;
+  }
+  .warn-box {
+    background: #fef2f2;
+    border-left: 3px solid var(--red);
+    padding: 0.25em 0.6em;
+    border-radius: 0 6px 6px 0;
+    margin: 0.2em 0;
+    font-size: 0.45em;
+    text-align: left;
+    color: #334155;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  /* Attention matrix */
+  .attn-matrix {
+    display: inline-block;
+    font-size: 0.38em;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+  .attn-matrix th { background: var(--dark); color: white; padding: 0.2em 0.35em; font-weight: 600; }
+  .attn-matrix td { padding: 0.2em 0.35em; text-align: center; border: 1px solid #e2e8f0; }
+  .attn-matrix .high { background: #dcfce7; font-weight: 700; color: var(--green); }
+  .attn-matrix .mask { background: #fecaca; color: #991b1b; }
+
+  /* Diagram containers */
+  .diagram {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.4em;
+    margin: 0.2em auto;
+    max-width: 80%;
+    overflow: hidden;
+  }
+  .diagram svg { max-width: 100%; height: auto; }
+
+  /* Flow arrows */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15em;
+    margin: 0.2em 0;
+    font-size: 0.45em;
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .flow-box {
+    background: white;
+    border: 1.5px solid var(--accent);
+    border-radius: 6px;
+    padding: 0.2em 0.4em;
+    font-weight: 600;
+    color: var(--dark);
+    font-size: 0.9em;
+    white-space: nowrap;
+  }
+  .flow-box.encoder { border-color: #2563eb; background: #eff6ff; }
+  .flow-box.decoder { border-color: #059669; background: #ecfdf5; }
+  .flow-box.output  { border-color: #d97706; background: #fffbeb; }
+  .flow-arrow { font-size: 1em; color: var(--gray); }
+
+  /* Columns */
+  .columns { display: flex; gap: 0.6em; align-items: flex-start; max-width: 100%; overflow: hidden; }
+  .columns .col { flex: 1; min-width: 0; overflow: hidden; }
+
+  /* Title slide */
+  .title-slide h1 { font-size: 1.35em; margin-bottom: 0.15em; }
+  .title-slide .subtitle { font-size: 0.45em; color: var(--gray); margin-bottom: 0.5em; }
+  .title-slide .authors { font-size: 0.45em; color: var(--dark); line-height: 2; }
+  .title-slide .course { font-size: 0.4em; color: var(--gray); margin-top: 0.6em; }
+
+  /* Roadmap */
+  .roadmap { display: flex; gap: 0.3em; margin: 0.4em 0; justify-content: center; max-width: 100%; }
+  .roadmap-card {
+    flex: 1;
+    background: white;
+    border-radius: 8px;
+    padding: 0.35em;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    text-align: center;
+    font-size: 0.4em;
+    border-top: 3px solid var(--gray);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .roadmap-card.c1 { border-top-color: #7c3aed; }
+  .roadmap-card.c2 { border-top-color: #2563eb; }
+  .roadmap-card.c3 { border-top-color: #059669; }
+  .roadmap-card.c4 { border-top-color: #d97706; }
+  .roadmap-card strong { display: block; font-size: 1.1em; margin-bottom: 0.15em; color: var(--dark); }
+
+  /* Timeline */
+  .timeline {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin: 0.3em 0;
+    font-size: 0.42em;
+    justify-content: center;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .timeline-item {
+    text-align: center;
+    flex: 0 0 auto;
+    position: relative;
+    padding: 0 0.3em;
+  }
+  .timeline-item::after {
+    content: '\2192';
+    position: absolute;
+    right: -0.3em;
+    top: 0.1em;
+    font-size: 1.1em;
+    color: var(--gray);
+  }
+  .timeline-item:last-child::after { content: ''; }
+  .timeline-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin: 0 auto 0.15em;
+  }
+  .timeline-year { font-weight: 700; color: var(--dark); }
+  .timeline-label { color: var(--gray); font-size: 0.85em; }
+
+  .reveal .slide-number { font-size: 0.45em; color: var(--gray); }
+
+  /* Block MathJax from overflowing */
+  .MathJax { font-size: 1em !important; max-width: 100% !important; overflow: hidden !important; }
+</style>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [['\\(','\\)']], displayMath: [['\\[','\\]']] },
+  svg: { fontCache: 'global', scale: 1.0 },
+  startup: { typeset: true }
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================== -->
+<!-- SLIDE 1: TITLE -->
+<!-- ============================================== -->
+<section class="title-slide">
+  <h1>Attention Is All You Need</h1>
+  <p class="subtitle">Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, Polosukhin — NeurIPS 2017</p>
+  <div class="authors">
+    <span class="presenter ekant">Ekant Kapgate</span>&nbsp;
+    <span class="presenter saransh">Saransh Soni</span>&nbsp;
+    <span class="presenter vineet">Vineet Malewar</span>&nbsp;
+    <span class="presenter yashashav">Yashashav D.K.</span>
+  </div>
+  <p class="course">CMPE 257 — Machine Learning &nbsp;|&nbsp; Prof. Gautam Krishna</p>
+</section>
+
+<!-- ============================================== -->
+<!-- SECTION 1: MOTIVATION & BIG PICTURE -->
+<!-- ============================================== -->
+<section class="section-divider">
+  <h2>Motivation &amp; Big Picture</h2>
+  <p>Why do we need the Transformer?</p>
+</section>
+
+<!-- SLIDE: THE SEQUENCE PROBLEM -->
+<section>
+  <h2>The Sequence Problem</h2>
+  <p>Before 2017, sequence tasks relied on <strong>Recurrent Neural Networks</strong>:</p>
+  <div class="diagram" style="max-width:100%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 360 70" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8"/></marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker>
+      </defs>
+      <g font-family="system-ui" text-anchor="middle">
+        <text x="40" y="11" fill="#64748b" font-size="9" font-weight="600">t=1</text>
+        <rect x="15" y="17" width="50" height="24" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="40" y="33" fill="#1e293b" font-weight="700" font-size="11">RNN</text>
+        <text x="40" y="60" fill="#64748b" font-size="9" font-weight="600">x&#x2081;</text>
+        <line x1="40" y1="53" x2="40" y2="41" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr)"/>
+
+        <text x="120" y="11" fill="#64748b" font-size="9" font-weight="600">t=2</text>
+        <rect x="95" y="17" width="50" height="24" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="120" y="33" fill="#1e293b" font-weight="700" font-size="11">RNN</text>
+        <text x="120" y="60" fill="#64748b" font-size="9" font-weight="600">x&#x2082;</text>
+        <line x1="120" y1="53" x2="120" y2="41" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr)"/>
+        <line x1="65" y1="29" x2="95" y2="29" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <text x="80" y="24" fill="#2563eb" font-size="8" font-weight="600">state</text>
+
+        <text x="200" y="11" fill="#64748b" font-size="9" font-weight="600">t=3</text>
+        <rect x="175" y="17" width="50" height="24" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="200" y="33" fill="#1e293b" font-weight="700" font-size="11">RNN</text>
+        <text x="200" y="60" fill="#64748b" font-size="9" font-weight="600">x&#x2083;</text>
+        <line x1="200" y1="53" x2="200" y2="41" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr)"/>
+        <line x1="145" y1="29" x2="175" y2="29" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <text x="160" y="24" fill="#2563eb" font-size="8" font-weight="600">state</text>
+
+        <text x="255" y="33" fill="#64748b" font-size="14" font-weight="700">...</text>
+
+        <text x="320" y="11" fill="#64748b" font-size="9" font-weight="600">t=N</text>
+        <rect x="295" y="17" width="50" height="24" rx="5" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="320" y="33" fill="#1e293b" font-weight="700" font-size="11">RNN</text>
+        <text x="320" y="60" fill="#64748b" font-size="9" font-weight="600">x&#x2099;</text>
+        <line x1="320" y1="53" x2="320" y2="41" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr)"/>
+        <line x1="270" y1="29" x2="295" y2="29" stroke="#2563eb" stroke-width="1.5" marker-end="url(#arr2)"/>
+      </g>
+    </svg>
+  </div>
+  <div class="insight-box">
+    <strong>Key bottleneck:</strong> Each step waits for the previous hidden state — inherently <strong>sequential</strong>, no parallelism.
+  </div>
+</section>
+
+<!-- SLIDE: PROBLEMS WITH RNNs -->
+<section>
+  <h2>Problems with RNNs</h2>
+  <div class="warn-box">
+    <strong>1. Slow</strong> — Sequential processing; cannot use GPU parallelism.
+  </div>
+  <div class="warn-box">
+    <strong>2. Vanishing/exploding gradients</strong> — Gradients flow through every step; long sequences cause them to shrink or blow up.
+  </div>
+  <div class="warn-box">
+    <strong>3. Long-range dependencies</strong> — Info from early tokens must survive every hidden state. RNNs struggle with distant context.
+  </div>
+  <p style="margin-top:0.35em; font-size:0.45em; color:var(--gray);">LSTMs/GRUs improved (2) and (3) but didn't solve (1) — still sequential.</p>
+</section>
+
+<!-- SLIDE: THE KEY INSIGHT -->
+<section>
+  <h2>The Key Insight</h2>
+  <blockquote style="border-left:3px solid var(--accent); padding:0.25em 0.6em; margin:0.3em auto; max-width:90%; font-size:0.48em; font-style:italic; color:var(--dark);">
+    "What if every token could attend to every other token — in parallel — without recurrence?"
+  </blockquote>
+  <div class="columns" style="margin-top:0.3em;">
+    <div class="col" style="text-align:center;">
+      <h3 style="color:var(--red);">RNN</h3>
+      <p>Token 1 &#x2192; Token 2 &#x2192; ... &#x2192; Token N</p>
+      <p style="font-size:0.45em; color:var(--gray);">Path: <strong>O(N)</strong></p>
+    </div>
+    <div class="col" style="text-align:center;">
+      <h3 style="color:var(--green);">Transformer</h3>
+      <p>Every token &#x2194; Every token</p>
+      <p style="font-size:0.45em; color:var(--gray);">Path: <strong>O(1)</strong></p>
+    </div>
+  </div>
+  <div class="insight-box">
+    <strong>Attention</strong> replaces recurrence. All tokens processed at once — massive GPU parallelization.
+  </div>
+</section>
+
+<!-- SLIDE: TRANSFORMER HIGH LEVEL -->
+<section>
+  <h2>Transformer Overview</h2>
+  <div class="diagram" style="max-width:100%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 520 265" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs><marker id="a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+      <g font-family="system-ui" font-size="10" text-anchor="middle">
+        <!-- Encoder -->
+        <rect x="15" y="8" width="200" height="200" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="115" y="26" fill="#2563eb" font-weight="700" font-size="11">ENCODER (x6)</text>
+        <rect x="30" y="36" width="170" height="22" rx="5" fill="white" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="115" y="51" fill="#1e293b" font-size="9">Input Embedding + Pos Enc</text>
+        <rect x="30" y="66" width="170" height="22" rx="5" fill="white" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="115" y="81" fill="#1e293b" font-size="9">Multi-Head Self-Attention</text>
+        <rect x="45" y="96" width="140" height="18" rx="5" fill="white" stroke="#94a3b8" stroke-width="1"/>
+        <text x="115" y="109" fill="#64748b" font-size="8">Add &amp; Norm</text>
+        <rect x="30" y="122" width="170" height="22" rx="5" fill="white" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="115" y="137" fill="#1e293b" font-size="9">Feed-Forward Network</text>
+        <rect x="45" y="152" width="140" height="18" rx="5" fill="white" stroke="#94a3b8" stroke-width="1"/>
+        <text x="115" y="165" fill="#64748b" font-size="8">Add &amp; Norm</text>
+        <text x="115" y="192" fill="#2563eb" font-size="9" font-weight="600">Encoder Output</text>
+        <text x="115" y="240" fill="#64748b" font-size="9" font-style="italic">Source sequence</text>
+
+        <!-- Decoder -->
+        <rect x="300" y="8" width="200" height="200" rx="10" fill="#ecfdf5" stroke="#059669" stroke-width="1.5" stroke-dasharray="5,3"/>
+        <text x="400" y="26" fill="#059669" font-weight="700" font-size="11">DECODER (x6)</text>
+        <rect x="315" y="36" width="170" height="22" rx="5" fill="white" stroke="#059669" stroke-width="1.2"/>
+        <text x="400" y="51" fill="#1e293b" font-size="9">Output Embedding + Pos Enc</text>
+        <rect x="315" y="66" width="170" height="22" rx="5" fill="white" stroke="#059669" stroke-width="1.2"/>
+        <text x="400" y="81" fill="#1e293b" font-size="9">Masked Multi-Head Attn</text>
+        <rect x="330" y="96" width="140" height="18" rx="5" fill="white" stroke="#94a3b8" stroke-width="1"/>
+        <text x="400" y="109" fill="#64748b" font-size="8">Add &amp; Norm</text>
+        <rect x="315" y="122" width="170" height="22" rx="5" fill="white" stroke="#059669" stroke-width="1.2"/>
+        <text x="400" y="134" fill="#1e293b" font-size="8">Cross-Attn (Q=dec, KV=enc)</text>
+        <rect x="315" y="152" width="170" height="18" rx="5" fill="white" stroke="#94a3b8" stroke-width="1"/>
+        <text x="400" y="165" fill="#64748b" font-size="8">FFN + Add &amp; Norm</text>
+        <text x="400" y="192" fill="#059669" font-size="9" font-weight="600">Linear &#x2192; Softmax</text>
+        <text x="400" y="240" fill="#64748b" font-size="9" font-style="italic">Target (shifted right)</text>
+
+        <!-- Cross arrow -->
+        <line x1="195" y1="185" x2="315" y2="132" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a)" stroke-dasharray="4,2"/>
+        <text x="255" y="150" fill="#7c3aed" font-size="8" font-weight="600">K, V</text>
+
+        <!-- Upward arrows from labels into boxes -->
+        <line x1="115" y1="230" x2="115" y2="210" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+        <line x1="400" y1="230" x2="400" y2="210" stroke="#64748b" stroke-width="1" marker-end="url(#a)"/>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- SLIDE: ROADMAP -->
+<section>
+  <h2>Roadmap</h2>
+  <div class="roadmap">
+    <div class="roadmap-card c1">
+      <strong>Motivation</strong>
+      <span class="presenter ekant" style="font-size:0.85em;">Ekant</span>
+      <p style="margin-top:0.2em;">Why Transformers?<br>High-level view</p>
+    </div>
+    <div class="roadmap-card c2">
+      <strong>Encoder</strong>
+      <span class="presenter saransh" style="font-size:0.85em;">Saransh</span>
+      <p style="margin-top:0.2em;">Embeddings, PE,<br>self-attention</p>
+    </div>
+    <div class="roadmap-card c3">
+      <strong>Decoder</strong>
+      <span class="presenter vineet" style="font-size:0.85em;">Vineet</span>
+      <p style="margin-top:0.2em;">Masked attn, training<br>vs inference</p>
+    </div>
+    <div class="roadmap-card c4">
+      <strong>Impact</strong>
+      <span class="presenter yashashav" style="font-size:0.85em;">Yashashav</span>
+      <p style="margin-top:0.2em;">BERT, GPT,<br>and beyond</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<!-- SECTION 2: THE ENCODER -->
+<!-- ============================================== -->
+<section class="section-divider">
+  <h2>The Encoder</h2>
+  <p>From raw tokens to contextualized representations</p>
+</section>
+
+<!-- SLIDE: INPUT EMBEDDINGS -->
+<section>
+  <h2>Input Embeddings</h2>
+  <div class="flow">
+    <div class="flow-box">Tokens</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box">Vocab IDs</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box encoder">Embedding (512-d)</div>
+  </div>
+  <div class="diagram" style="font-size:0.45em; text-align:left; padding:0.4em 0.7em; max-width:75%;">
+    <table style="border:none; font-size:1em; margin:0; width:100%; table-layout:auto;">
+      <tr><td style="border:none; font-weight:700; width:45px;">YOUR</td><td style="border:none;">&#x2192; ID 105 &#x2192;</td><td style="border:none; font-family:monospace;">[952, 5450, 1853, ...] <em style="color:var(--gray);">512d</em></td></tr>
+      <tr><td style="border:none; font-weight:700;">CAT</td><td style="border:none;">&#x2192; ID 6587 &#x2192;</td><td style="border:none; font-family:monospace;">[621, 1304, 0.6, ...] <em style="color:var(--gray);">512d</em></td></tr>
+      <tr><td style="border:none; font-weight:700;">IS</td><td style="border:none;">&#x2192; ID 5475 &#x2192;</td><td style="border:none; font-family:monospace;">[776, 5567, 58.9, ...] <em style="color:var(--gray);">512d</em></td></tr>
+    </table>
+  </div>
+  <div class="insight-box">
+    Each token maps to a learned vector of size <strong>d<sub>model</sub>=512</strong>. Captures <em>meaning</em> but not position.
+  </div>
+</section>
+
+<!-- SLIDE: POSITIONAL ENCODING -->
+<section>
+  <h2>Positional Encoding</h2>
+  <p>No recurrence, so we <strong>inject position info</strong> explicitly.</p>
+  <div class="formula-box" style="font-size:0.6em;">
+    \(PE_{(pos,2i)} = \sin\!\bigl(\tfrac{pos}{10000^{2i/d}}\bigr)\) &nbsp; \(PE_{(pos,2i+1)} = \cos\!\bigl(\tfrac{pos}{10000^{2i/d}}\bigr)\)
+  </div>
+  <div class="flow" style="margin-top:0.2em;">
+    <div class="flow-box">Embedding</div>
+    <span class="flow-arrow">+</span>
+    <div class="flow-box" style="border-color:var(--orange);">Pos. Enc.</div>
+    <span class="flow-arrow">=</span>
+    <div class="flow-box encoder">Encoder Input</div>
+  </div>
+  <ul style="margin-top:0.2em;">
+    <li>Computed <strong>once</strong>, reused for all sentences</li>
+    <li>Sine/cosine at different frequencies &#x2192; unique pattern per position</li>
+    <li>Model can learn <strong>relative positions</strong>: PE<sub>pos+k</sub> is linear in PE<sub>pos</sub></li>
+  </ul>
+</section>
+
+<!-- SLIDE: WHY SINE & COSINE -->
+<section>
+  <h2>Why Sine &amp; Cosine?</h2>
+  <div class="columns">
+    <div class="col">
+      <ul>
+        <li><strong>Continuous</strong> — smooth functions the model can learn from</li>
+        <li><strong>Bounded</strong> — always between -1 and 1, stable training</li>
+        <li><strong>Unique per position</strong> — different frequencies across dims</li>
+        <li><strong>Relative positions</strong> — PE<sub>pos+k</sub> is a linear transform of PE<sub>pos</sub></li>
+      </ul>
+    </div>
+    <div class="col" style="text-align:center;">
+      <div class="diagram" style="padding:0.5em; max-width:100%;">
+        <svg viewBox="0 0 180 100" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+          <g font-family="system-ui" font-size="7">
+            <line x1="12" y1="50" x2="170" y2="50" stroke="#cbd5e1" stroke-width="0.8"/>
+            <line x1="12" y1="10" x2="12" y2="90" stroke="#cbd5e1" stroke-width="0.8"/>
+            <path d="M12,50 Q32,15 52,50 Q72,85 92,50 Q112,15 132,50 Q152,85 170,55" fill="none" stroke="#2563eb" stroke-width="1.5"/>
+            <path d="M12,22 Q52,22 92,50 Q132,78 170,78" fill="none" stroke="#d97706" stroke-width="1.5" stroke-dasharray="3,2"/>
+            <text x="108" y="20" fill="#2563eb" font-size="8" font-weight="600">high freq (i=0)</text>
+            <text x="100" y="95" fill="#d97706" font-size="8" font-weight="600">low freq (i=255)</text>
+          </g>
+        </svg>
+      </div>
+      <p style="font-size:0.38em; color:var(--gray);">Different dims oscillate at different frequencies — like a binary clock</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE: SELF-ATTENTION INTUITION -->
+<section>
+  <h2>Self-Attention: Intuition</h2>
+  <p><strong>Goal:</strong> Let each word "look at" every other word to capture relationships.</p>
+  <div class="formula-box">
+    \(\text{Attention}(Q,K,V) = \text{softmax}\!\bigl(\tfrac{QK^T}{\sqrt{d_k}}\bigr)\,V\)
+  </div>
+  <p style="font-size:0.38em; color:var(--gray); margin:0.1em 0;">In self-attention: Q = K = V = input sequence</p>
+  <table class="attn-matrix" style="margin:0.15em auto;">
+    <tr><th></th><th>YOUR</th><th>CAT</th><th>IS</th><th>A</th><th>LOVELY</th><th>CAT</th></tr>
+    <tr><th>YOUR</th><td class="high">0.268</td><td>0.119</td><td>0.134</td><td>0.148</td><td>0.179</td><td>0.152</td></tr>
+    <tr><th>CAT</th><td>0.124</td><td class="high">0.278</td><td>0.201</td><td>0.128</td><td>0.154</td><td>0.115</td></tr>
+    <tr><th>IS</th><td>0.147</td><td>0.132</td><td class="high">0.262</td><td>0.097</td><td>0.218</td><td>0.145</td></tr>
+    <tr><th>A</th><td>0.210</td><td>0.128</td><td>0.206</td><td class="high">0.212</td><td>0.119</td><td>0.125</td></tr>
+    <tr><th>LOVELY</th><td>0.146</td><td>0.158</td><td>0.152</td><td>0.143</td><td class="high">0.227</td><td>0.174</td></tr>
+    <tr><th>CAT</th><td>0.195</td><td>0.114</td><td>0.203</td><td>0.103</td><td>0.157</td><td class="high">0.229</td></tr>
+  </table>
+  <p style="font-size:0.38em; color:var(--gray);">Each row sums to 1 (softmax). Diagonal tends highest — each word attends most to itself.</p>
+</section>
+
+<!-- SLIDE: SELF-ATTENTION STEP BY STEP -->
+<section>
+  <h2>Self-Attention Steps</h2>
+  <div class="flow" style="margin-bottom:0.15em;">
+    <div class="flow-box">Q <span style="font-size:0.75em; color:var(--gray);">(seq, d<sub>k</sub>)</span></div>
+    <span class="flow-arrow">&#xd7;</span>
+    <div class="flow-box">K<sup>T</sup> <span style="font-size:0.75em; color:var(--gray);">(d<sub>k</sub>, seq)</span></div>
+    <span class="flow-arrow">=</span>
+    <div class="flow-box" style="border-color:var(--orange);">Scores <span style="font-size:0.75em; color:var(--gray);">(seq, seq)</span></div>
+  </div>
+  <ol style="font-size:0.65em;">
+    <li><strong>Compute scores:</strong> \(QK^T\) — dot product for token similarity</li>
+    <li><strong>Scale:</strong> Divide by \(\sqrt{d_k}\) to prevent softmax saturation</li>
+    <li><strong>Softmax:</strong> Normalize each row to attention weights</li>
+    <li><strong>Weighted sum:</strong> Multiply by \(V\) — weighted mix of value vectors</li>
+  </ol>
+  <div class="insight-box">
+    <strong>Result:</strong> Each output captures the token's meaning plus its <em>interaction</em> with every other token.
+  </div>
+</section>
+
+<!-- SLIDE: MULTI-HEAD ATTENTION -->
+<section>
+  <h2>Multi-Head Attention</h2>
+  <div class="formula-box" style="font-size:0.55em;">
+    \(\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1,\dots,\text{head}_h)\,W^O\)
+  </div>
+  <p style="font-size:0.38em; color:var(--gray); margin:0.1em 0;">\(\text{head}_i = \text{Attention}(QW_i^Q,\;KW_i^K,\;VW_i^V)\)</p>
+  <div class="columns" style="margin-top:0.2em;">
+    <div class="col">
+      <h3>Why multiple heads?</h3>
+      <ul>
+        <li>Each head learns <strong>different relationships</strong> — syntax, semantics, coreference</li>
+        <li>Like multiple "perspectives" on the same data</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Dimensions</h3>
+      <table style="font-size:0.75em; table-layout:auto;">
+        <tr><td>Heads (h)</td><td><strong>8</strong></td></tr>
+        <tr><td>d<sub>model</sub></td><td>512</td></tr>
+        <tr><td style="white-space:nowrap;">d<sub>k</sub>=d<sub>v</sub>=d<sub>model</sub>/h</td><td><strong>64</strong></td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="insight-box">
+    Split &#x2192; Attend in parallel &#x2192; Concat &#x2192; Project. Same cost as single-head with full dims.
+  </div>
+</section>
+
+<!-- SLIDE: LAYER NORM & FFN -->
+<section>
+  <h2>Layer Norm &amp; FFN</h2>
+  <div class="columns">
+    <div class="col">
+      <h3>Layer Normalization</h3>
+      <div class="formula-box" style="font-size:0.8em;">
+        \(\hat{x}_j = \frac{x_j - \mu}{\sqrt{\sigma^2 + \epsilon}}\)
+      </div>
+      <ul style="font-size:0.58em;">
+        <li>Normalizes across <strong>features</strong> (not batch)</li>
+        <li>Learnable &#x3b3; (scale) and &#x3b2; (shift)</li>
+        <li>Stabilizes deep network training</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3>Feed-Forward Network</h3>
+      <div class="formula-box" style="font-size:0.62em; font-family:'Times New Roman',Georgia,serif;">
+        FFN(<i>x</i>) = ReLU(<i>x</i>W<sub>1</sub>+b<sub>1</sub>)W<sub>2</sub>+b<sub>2</sub>
+      </div>
+      <ul style="font-size:0.58em;">
+        <li>Two linear layers with ReLU</li>
+        <li>Inner dim: 2048 (4x d<sub>model</sub>)</li>
+        <li>Applied per position independently</li>
+      </ul>
+    </div>
+  </div>
+  <div class="flow" style="margin-top:0.25em; font-size:0.4em;">
+    <div class="flow-box encoder">Input</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box">MH-Attn</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box" style="border-color:var(--orange);">Add&amp;Norm</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box">FFN</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box" style="border-color:var(--orange);">Add&amp;Norm</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box encoder">Out</div>
+  </div>
+  <p style="font-size:0.38em; color:var(--gray); margin-top:0.1em;">Residual connections (Add) help gradient flow. This pattern repeats N=6 times.</p>
+</section>
+
+<!-- SLIDE: ENCODER STACK -->
+<section>
+  <h2>The Encoder Stack</h2>
+  <div class="diagram" style="max-width:90%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/></marker></defs>
+      <g font-family="system-ui" font-size="10" text-anchor="middle">
+        <text x="150" y="198" fill="#64748b" font-size="9">Input Embeddings + Positional Encoding</text>
+        <line x1="150" y1="186" x2="150" y2="178" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a3)"/>
+        <rect x="75" y="155" width="150" height="22" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="150" y="170" fill="#1e293b" font-weight="600">Encoder Layer 1</text>
+        <line x1="150" y1="155" x2="150" y2="147" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a3)"/>
+        <rect x="75" y="124" width="150" height="22" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="150" y="139" fill="#1e293b" font-weight="600">Encoder Layer 2</text>
+        <line x1="150" y1="124" x2="150" y2="116" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a3)"/>
+        <text x="150" y="106" fill="#64748b" font-size="12">&#x22EE;</text>
+        <line x1="150" y1="94" x2="150" y2="86" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a3)"/>
+        <rect x="75" y="63" width="150" height="22" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+        <text x="150" y="78" fill="#1e293b" font-weight="700">Encoder Layer 6</text>
+        <line x1="150" y1="63" x2="150" y2="50" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a3)"/>
+        <rect x="65" y="28" width="170" height="22" rx="6" fill="#2563eb"/>
+        <text x="150" y="43" fill="white" font-weight="700">Encoder Output (seq, 512)</text>
+
+        <text x="280" y="108" fill="#1e293b" font-size="10" font-weight="600" text-anchor="start">Each layer:</text>
+        <text x="280" y="124" fill="#64748b" font-size="9" text-anchor="start">&#x2022; Multi-Head Attn</text>
+        <text x="280" y="138" fill="#64748b" font-size="9" text-anchor="start">&#x2022; Add &amp; Norm</text>
+        <text x="280" y="152" fill="#64748b" font-size="9" text-anchor="start">&#x2022; Feed-Forward</text>
+        <text x="280" y="166" fill="#64748b" font-size="9" text-anchor="start">&#x2022; Add &amp; Norm</text>
+      </g>
+    </svg>
+  </div>
+  <div class="insight-box">
+    <strong>Output:</strong> For each token, a 512-d vector encoding meaning, position, and relationships. Passed to decoder.
+  </div>
+</section>
+
+<!-- ============================================== -->
+<!-- SECTION 3: DECODER & TRAINING/INFERENCE -->
+<!-- ============================================== -->
+<section class="section-divider">
+  <h2>Decoder &amp; Training</h2>
+  <p>How the model generates output</p>
+</section>
+
+<!-- SLIDE: DECODER OVERVIEW -->
+<section>
+  <h2>Decoder Overview</h2>
+  <p>The decoder has <strong>three</strong> sub-layers per block (vs. two in encoder):</p>
+  <div class="flow" style="font-size:0.4em;">
+    <div class="flow-box decoder">Target</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box" style="border-color:var(--red);">Masked Self-Attn</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box" style="border-color:#7c3aed;">Cross-Attn</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box">FFN</div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box" style="border-color:var(--orange);">Add&amp;Norm</div>
+  </div>
+  <table style="font-size:0.45em; margin-top:0.2em;">
+    <tr><th style="width:25%;">Sub-layer</th><th style="width:45%;">Purpose</th><th style="width:30%;">Q, K, V</th></tr>
+    <tr><td><strong style="color:var(--red);">Masked Self-Attn</strong></td><td>Attend to previous output tokens only</td><td>All from decoder</td></tr>
+    <tr><td><strong style="color:#7c3aed;">Cross-Attention</strong></td><td>Attend to encoder output</td><td>Q=dec, KV=enc</td></tr>
+    <tr><td><strong>Feed-Forward</strong></td><td>Non-linear transformation</td><td>—</td></tr>
+  </table>
+</section>
+
+<!-- SLIDE: MASKED MULTI-HEAD ATTENTION -->
+<section>
+  <h2>Masked Attention</h2>
+  <p><strong>Why masking?</strong> Decoder must be <em>causal</em> — position <em>i</em> can only see positions &lt; <em>i</em>.</p>
+  <div class="columns">
+    <div class="col" style="text-align:center;">
+      <p style="font-size:0.45em; font-weight:600; color:var(--green);">Before masking</p>
+      <table class="attn-matrix">
+        <tr><th></th><th>YOUR</th><th>CAT</th><th>IS</th></tr>
+        <tr><th>YOUR</th><td>0.35</td><td>0.33</td><td>0.32</td></tr>
+        <tr><th>CAT</th><td>0.30</td><td>0.38</td><td>0.32</td></tr>
+        <tr><th>IS</th><td>0.31</td><td>0.34</td><td>0.35</td></tr>
+      </table>
+    </div>
+    <div class="col" style="text-align:center;">
+      <p style="font-size:0.45em; font-weight:600; color:var(--red);">After masking</p>
+      <table class="attn-matrix">
+        <tr><th></th><th>YOUR</th><th>CAT</th><th>IS</th></tr>
+        <tr><th>YOUR</th><td class="high">1.00</td><td class="mask">0</td><td class="mask">0</td></tr>
+        <tr><th>CAT</th><td>0.47</td><td class="high">0.53</td><td class="mask">0</td></tr>
+        <tr><th>IS</th><td>0.31</td><td>0.34</td><td class="high">0.35</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="insight-box" style="margin-top:0.2em;">
+    Future positions set to <strong>-&#x221E;</strong> before softmax &#x2192; become <strong>0</strong> after softmax. No "cheating" by looking ahead.
+  </div>
+</section>
+
+<!-- SLIDE: CROSS-ATTENTION -->
+<section>
+  <h2>Cross-Attention</h2>
+  <p>The bridge between encoder and decoder — how the decoder "reads" the source.</p>
+  <div class="diagram" style="max-width:95%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 420 130" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+      <g font-family="system-ui" font-size="10" text-anchor="middle">
+        <rect x="10" y="12" width="130" height="38" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="75" y="29" fill="#1e293b" font-weight="700" font-size="10">Encoder Output</text>
+        <text x="75" y="43" fill="#64748b" font-size="9" font-weight="600">(seq, 512)</text>
+        <rect x="10" y="78" width="130" height="38" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+        <text x="75" y="95" fill="#1e293b" font-weight="700" font-size="10">Decoder State</text>
+        <text x="75" y="109" fill="#64748b" font-size="9" font-weight="600">(seq, 512)</text>
+        <rect x="200" y="32" width="140" height="52" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+        <text x="270" y="53" fill="#1e293b" font-weight="700" font-size="11">Cross-Attention</text>
+        <text x="270" y="72" fill="#64748b" font-size="9" font-weight="600">softmax(QK&#x1D40;/&#x221A;d&#x2096;)V</text>
+        <line x1="140" y1="28" x2="200" y2="48" stroke="#2563eb" stroke-width="1.5" marker-end="url(#a4)"/>
+        <text x="168" y="30" fill="#2563eb" font-weight="700" font-size="9">K, V</text>
+        <line x1="140" y1="97" x2="200" y2="68" stroke="#059669" stroke-width="1.5" marker-end="url(#a4)"/>
+        <text x="165" y="92" fill="#059669" font-weight="700" font-size="9">Q</text>
+        <line x1="340" y1="57" x2="380" y2="57" stroke="#64748b" stroke-width="1.5" marker-end="url(#a4)"/>
+        <text x="395" y="60" fill="#1e293b" font-weight="700" font-size="10" text-anchor="start">Out</text>
+      </g>
+    </svg>
+  </div>
+  <div class="insight-box">
+    <strong>Q</strong> from decoder (what am I looking for?). <strong>K, V</strong> from encoder (what's in the source?). Each output token attends to relevant input.
+  </div>
+</section>
+
+<!-- SLIDE: LINEAR + SOFTMAX -->
+<section>
+  <h2>Linear Layer &amp; Softmax</h2>
+  <div class="flow">
+    <div class="flow-box decoder">Decoder Out<br><span style="font-size:0.75em; color:var(--gray);">(seq, 512)</span></div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box">Linear<br><span style="font-size:0.75em; color:var(--gray);">(512&#x2192;vocab)</span></div>
+    <span class="flow-arrow">&#x2192;</span>
+    <div class="flow-box output">Softmax<br><span style="font-size:0.75em; color:var(--gray);">(vocab_size)</span></div>
+  </div>
+  <ul style="margin-top:0.3em;">
+    <li><strong>Linear layer</strong> projects d<sub>model</sub> to vocab size (e.g. 37K tokens)</li>
+    <li>Output (<strong>logits</strong>) = raw score per word in vocabulary</li>
+    <li><strong>Softmax</strong> converts logits to probabilities</li>
+    <li>Training: compare with ground truth via <strong>cross-entropy loss</strong></li>
+    <li>Inference: select the highest-probability token</li>
+  </ul>
+</section>
+
+<!-- SLIDE: TRAINING -->
+<section>
+  <h2>Training: Teacher Forcing</h2>
+  <p style="font-size:0.45em;">Example: <strong>"I love you very much"</strong> &#x2192; <strong>"Ti amo molto"</strong></p>
+  <div class="diagram" style="max-width:100%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 460 165" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs><marker id="a5" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+      <g font-family="system-ui" font-size="9" text-anchor="middle">
+        <rect x="10" y="48" width="105" height="32" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+        <text x="63" y="63" fill="#1e293b" font-weight="700" font-size="9">Encoder</text>
+        <text x="63" y="74" fill="#64748b" font-size="7">Processes source</text>
+        <text x="63" y="40" fill="#2563eb" font-size="8" font-weight="600">"I love you very much"</text>
+
+        <line x1="115" y1="64" x2="145" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
+        <text x="130" y="56" fill="#64748b" font-size="8" font-weight="600">K, V</text>
+
+        <rect x="145" y="48" width="115" height="32" rx="6" fill="#ecfdf5" stroke="#059669" stroke-width="1.5"/>
+        <text x="203" y="63" fill="#1e293b" font-weight="700" font-size="9">Decoder</text>
+        <text x="203" y="74" fill="#64748b" font-size="7">Shifted target</text>
+        <text x="203" y="40" fill="#059669" font-size="8" font-weight="600">"&lt;SOS&gt; Ti amo molto"</text>
+
+        <line x1="260" y1="64" x2="285" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
+        <rect x="285" y="48" width="70" height="32" rx="6" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+        <text x="320" y="63" fill="#1e293b" font-weight="600" font-size="8">Linear +</text>
+        <text x="320" y="74" fill="#1e293b" font-weight="600" font-size="8">Softmax</text>
+
+        <line x1="355" y1="64" x2="375" y2="64" stroke="#64748b" stroke-width="1.5" marker-end="url(#a5)"/>
+        <text x="420" y="60" fill="#1e293b" font-weight="600" font-size="8">Predicted:</text>
+        <text x="420" y="72" fill="#059669" font-size="8">"Ti amo molto &lt;EOS&gt;"</text>
+
+        <text x="420" y="100" fill="#dc2626" font-weight="700" font-size="8">Cross-Entropy Loss</text>
+        <text x="420" y="112" fill="#64748b" font-size="7">vs. "Ti amo molto &lt;EOS&gt;"</text>
+        <line x1="420" y1="78" x2="420" y2="90" stroke="#dc2626" stroke-width="1.5" marker-end="url(#a5)"/>
+
+        <rect x="10" y="105" width="280" height="45" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
+        <text x="150" y="122" fill="#1e293b" font-weight="700" font-size="9">All in ONE time step!</text>
+        <text x="150" y="134" fill="#64748b" font-size="7">Decoder sees entire target (shifted right) at once.</text>
+        <text x="150" y="145" fill="#64748b" font-size="7">Masking prevents seeing future tokens.</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- SLIDE: INFERENCE -->
+<section>
+  <h2>Autoregressive Inference</h2>
+  <p style="font-size:0.45em;">Unlike training, inference generates tokens <strong>one at a time</strong>:</p>
+  <table style="font-size:0.45em; margin:0.15em auto; width:80%;">
+    <tr><th style="width:12%;">Step</th><th style="width:50%;">Decoder Input</th><th style="width:38%;">Output Token</th></tr>
+    <tr><td><strong>1</strong></td><td>&lt;SOS&gt;</td><td style="color:var(--green); font-weight:700;">Ti</td></tr>
+    <tr><td><strong>2</strong></td><td>&lt;SOS&gt; Ti</td><td style="color:var(--green); font-weight:700;">amo</td></tr>
+    <tr><td><strong>3</strong></td><td>&lt;SOS&gt; Ti amo</td><td style="color:var(--green); font-weight:700;">molto</td></tr>
+    <tr><td><strong>4</strong></td><td>&lt;SOS&gt; Ti amo molto</td><td style="color:var(--red); font-weight:700;">&lt;EOS&gt; &#x2713;</td></tr>
+  </table>
+  <div class="insight-box">
+    The <strong>encoder runs once</strong> — output reused at every step. Only the decoder runs repeatedly, appending each new token.
+  </div>
+</section>
+
+<!-- SLIDE: INFERENCE STRATEGIES -->
+<section>
+  <h2>Inference Strategies</h2>
+  <div class="columns">
+    <div class="col">
+      <h3 style="color:var(--red);">Greedy Decoding</h3>
+      <ul>
+        <li>Always pick <strong>top-1</strong> token</li>
+        <li>Fast but misses better sequences</li>
+        <li>Gets stuck in local optima</li>
+      </ul>
+      <div style="font-family:monospace; font-size:0.4em; background:#fef2f2; padding:0.25em; border-radius:4px; margin-top:0.15em;">
+        step 1: argmax &#x2192; "Ti"<br>
+        step 2: argmax &#x2192; "amo"<br>
+        step 3: argmax &#x2192; "molto"
+      </div>
+    </div>
+    <div class="col">
+      <h3 style="color:var(--green);">Beam Search (B=3)</h3>
+      <ul>
+        <li>Keep top <strong>B</strong> candidates each step</li>
+        <li>Explore multiple paths in parallel</li>
+        <li>Pick best complete sequence</li>
+      </ul>
+      <div style="font-family:monospace; font-size:0.4em; background:#ecfdf5; padding:0.25em; border-radius:4px; margin-top:0.15em;">
+        step 1: ["Ti", "Il", "Io"]<br>
+        step 2: ["Ti amo", "Ti vog.."]<br>
+        step 3: pick best sequence
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE: THE FULL PICTURE -->
+<section>
+  <h2>The Full Picture</h2>
+  <div class="diagram" style="max-width:100%; padding:0.5em 0.8em;">
+    <svg viewBox="0 0 540 230" xmlns="http://www.w3.org/2000/svg" style="width:100%; height:auto;">
+      <defs><marker id="a6" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/></marker></defs>
+      <g font-family="system-ui" font-size="10" text-anchor="middle">
+        <!-- Source -->
+        <text x="110" y="228" fill="#2563eb" font-weight="700" font-size="11">Source: "I love you"</text>
+
+        <!-- Encoder column -->
+        <rect x="40" y="192" width="130" height="20" rx="4" fill="white" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="105" y="206" fill="#1e293b" font-weight="600" font-size="9">Input Embedding + PE</text>
+        <line x1="105" y1="192" x2="105" y2="184" stroke="#2563eb" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="40" y="162" width="130" height="20" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="105" y="176" fill="#1e293b" font-weight="700" font-size="10">Self-Attention</text>
+        <line x1="105" y1="162" x2="105" y2="154" stroke="#2563eb" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="50" y="134" width="110" height="16" rx="4" fill="white" stroke="#94a3b8" stroke-width="0.8"/>
+        <text x="105" y="146" fill="#64748b" font-weight="600" font-size="9">Add &amp; Norm</text>
+        <line x1="105" y1="134" x2="105" y2="126" stroke="#2563eb" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="40" y="104" width="130" height="20" rx="4" fill="#eff6ff" stroke="#2563eb" stroke-width="1.2"/>
+        <text x="105" y="118" fill="#1e293b" font-weight="700" font-size="10">Feed-Forward</text>
+        <line x1="105" y1="104" x2="105" y2="96" stroke="#2563eb" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="50" y="76" width="110" height="16" rx="4" fill="white" stroke="#94a3b8" stroke-width="0.8"/>
+        <text x="105" y="88" fill="#64748b" font-weight="600" font-size="9">Add &amp; Norm</text>
+        <text x="105" y="65" fill="#2563eb" font-weight="700" font-size="11">x6</text>
+        <rect x="40" y="36" width="130" height="20" rx="4" fill="#2563eb"/>
+        <text x="105" y="50" fill="white" font-weight="700" font-size="10">Encoder Output</text>
+
+        <!-- Target -->
+        <text x="390" y="228" fill="#059669" font-weight="700" font-size="11">Target: "&lt;SOS&gt; Ti amo"</text>
+
+        <!-- Decoder column -->
+        <rect x="325" y="192" width="130" height="20" rx="4" fill="white" stroke="#059669" stroke-width="1.2"/>
+        <text x="390" y="206" fill="#1e293b" font-weight="600" font-size="9">Output Embedding + PE</text>
+        <line x1="390" y1="192" x2="390" y2="184" stroke="#059669" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="325" y="162" width="130" height="20" rx="4" fill="#fef2f2" stroke="#dc2626" stroke-width="1.2"/>
+        <text x="390" y="176" fill="#1e293b" font-weight="700" font-size="10">Masked Self-Attn</text>
+        <line x1="390" y1="162" x2="390" y2="154" stroke="#059669" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="335" y="134" width="110" height="16" rx="4" fill="white" stroke="#94a3b8" stroke-width="0.8"/>
+        <text x="390" y="146" fill="#64748b" font-weight="600" font-size="9">Add &amp; Norm</text>
+        <line x1="390" y1="134" x2="390" y2="126" stroke="#059669" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <rect x="325" y="104" width="130" height="20" rx="4" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.2"/>
+        <text x="390" y="118" fill="#1e293b" font-weight="700" font-size="10">Cross-Attention</text>
+        <line x1="390" y1="104" x2="390" y2="96" stroke="#059669" stroke-width="1.2" marker-end="url(#a6)"/>
+
+        <!-- Cross arrow -->
+        <line x1="170" y1="46" x2="325" y2="112" stroke="#7c3aed" stroke-width="1.5" marker-end="url(#a6)" stroke-dasharray="4,2"/>
+        <text x="248" y="70" fill="#7c3aed" font-weight="700" font-size="10">K, V</text>
+
+        <rect x="335" y="76" width="110" height="16" rx="4" fill="white" stroke="#94a3b8" stroke-width="0.8"/>
+        <text x="390" y="88" fill="#64748b" font-weight="600" font-size="9">Add&amp;Norm + FFN</text>
+        <text x="390" y="65" fill="#059669" font-weight="700" font-size="11">x6</text>
+        <rect x="325" y="36" width="130" height="20" rx="4" fill="#059669"/>
+        <text x="390" y="50" fill="white" font-weight="700" font-size="10">Linear + Softmax</text>
+
+        <text x="390" y="25" fill="#d97706" font-weight="700" font-size="11">&#x2192; "Ti amo molto &lt;EOS&gt;"</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ============================================== -->
+<!-- SECTION 4: IMPACT & LEGACY -->
+<!-- ============================================== -->
+<section class="section-divider">
+  <h2>Impact &amp; Legacy</h2>
+  <p>Why this paper changed everything</p>
+</section>
+
+<!-- SLIDE: WHY ATTENTION IS ALL YOU NEED -->
+<section>
+  <h2>Why Attention Alone?</h2>
+  <p>No recurrence, no convolution — attention is sufficient.</p>
+  <table style="margin-top:0.2em; font-size:0.45em;">
+    <tr><th style="width:40%;">Property</th><th style="width:30%;">RNN/LSTM</th><th style="width:30%;">Transformer</th></tr>
+    <tr><td>Sequential ops/layer</td><td style="color:var(--red); font-weight:600;">O(n)</td><td style="color:var(--green); font-weight:600;">O(1)</td></tr>
+    <tr><td>Max path length</td><td style="color:var(--red); font-weight:600;">O(n)</td><td style="color:var(--green); font-weight:600;">O(1)</td></tr>
+    <tr><td>Parallelizable</td><td style="color:var(--red); font-weight:600;">No</td><td style="color:var(--green); font-weight:600;">Yes</td></tr>
+    <tr><td>Complexity/layer</td><td>O(n d&#xB2;)</td><td>O(n&#xB2; d)</td></tr>
+  </table>
+  <div class="insight-box" style="margin-top:0.2em;">
+    Trades <strong>sequential computation</strong> for <strong>parallel attention</strong> — perfect for GPUs. Base model: <strong>12h on 8 P100s</strong>.
+  </div>
+</section>
+
+<!-- SLIDE: KEY RESULTS -->
+<section>
+  <h2>Key Results</h2>
+  <table style="font-size:0.45em;">
+    <tr><th style="width:15%;">Task</th><th style="width:40%;">Model</th><th style="width:15%;">BLEU</th><th style="width:30%;">Cost</th></tr>
+    <tr><td rowspan="2">EN&#x2192;DE</td><td>Previous SOTA (ensemble)</td><td>26.36</td><td>—</td></tr>
+    <tr><td style="color:var(--green); font-weight:700;">Transformer (big)</td><td style="color:var(--green); font-weight:700;">28.4</td><td style="color:var(--green);">3.5 days, 8 GPUs</td></tr>
+    <tr><td rowspan="2">EN&#x2192;FR</td><td>Previous SOTA (ensemble)</td><td>41.29</td><td>—</td></tr>
+    <tr><td style="color:var(--green); font-weight:700;">Transformer (big)</td><td style="color:var(--green); font-weight:700;">41.8</td><td style="color:var(--green);">1/4 the cost</td></tr>
+  </table>
+  <div class="insight-box" style="margin-top:0.2em;">
+    New SOTA on both benchmarks at a <strong>fraction of the training cost</strong> — not just better, dramatically more efficient.
+  </div>
+</section>
+
+<!-- SLIDE: NLP REVOLUTION -->
+<section>
+  <h2>The NLP Revolution</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-year">2017</div>
+      <div class="timeline-label"><strong>Transformer</strong><br>Enc-Dec</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot" style="background:#059669;"></div>
+      <div class="timeline-year">2018</div>
+      <div class="timeline-label"><strong>BERT</strong><br>Enc-only</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot" style="background:#7c3aed;"></div>
+      <div class="timeline-year">2019</div>
+      <div class="timeline-label"><strong>GPT-2, T5</strong><br>Dec / Enc-Dec</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot" style="background:#d97706;"></div>
+      <div class="timeline-year">2020</div>
+      <div class="timeline-label"><strong>GPT-3</strong><br>175B params</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot" style="background:#dc2626;"></div>
+      <div class="timeline-year">2023+</div>
+      <div class="timeline-label"><strong>GPT-4, Claude</strong><br>LLaMA, Gemini</div>
+    </div>
+  </div>
+  <div class="columns" style="margin-top:0.25em;">
+    <div class="col" style="text-align:center;">
+      <h3>Encoder-Only</h3>
+      <p>BERT, RoBERTa<br><em style="font-size:0.85em; color:var(--gray);">Understanding</em></p>
+    </div>
+    <div class="col" style="text-align:center;">
+      <h3>Decoder-Only</h3>
+      <p>GPT, LLaMA, Claude<br><em style="font-size:0.85em; color:var(--gray);">Generation</em></p>
+    </div>
+    <div class="col" style="text-align:center;">
+      <h3>Enc-Dec</h3>
+      <p>T5, BART, mBART<br><em style="font-size:0.85em; color:var(--gray);">Translation</em></p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE: BEYOND NLP -->
+<section>
+  <h2>Beyond NLP</h2>
+  <p>The Transformer turned out to be <strong>domain-agnostic</strong>:</p>
+  <div class="columns" style="margin-top:0.15em;">
+    <div class="col">
+      <table style="font-size:0.45em;">
+        <tr><th style="width:45%;">Domain</th><th style="width:55%;">Key Model</th></tr>
+        <tr><td>Computer Vision</td><td><strong>ViT</strong>, DINO, DeiT</td></tr>
+        <tr><td>Image Gen</td><td><strong>DALL-E</strong>, Stable Diffusion</td></tr>
+        <tr><td>Protein Folding</td><td><strong>AlphaFold 2</strong></td></tr>
+        <tr><td>Audio / Speech</td><td><strong>Whisper</strong>, MusicLM</td></tr>
+        <tr><td>Robotics</td><td><strong>RT-2</strong>, Gato</td></tr>
+        <tr><td>Code</td><td><strong>Codex</strong>, StarCoder</td></tr>
+      </table>
+    </div>
+    <div class="col">
+      <div class="insight-box">
+        <strong>Self-attention over tokens</strong> generalizes to any modality: pixels, amino acids, audio, actions.
+      </div>
+      <p style="font-size:0.38em; color:var(--gray); margin-top:0.2em;">As of 2025, Transformers are the backbone of virtually all frontier AI systems.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SLIDE: LIMITATIONS -->
+<section>
+  <h2>Limitations &amp; Open Questions</h2>
+  <div class="warn-box">
+    <strong>Quadratic attention</strong> — O(n&#xB2;) in sequence length. 100K tokens = 10B scores per layer.
+  </div>
+  <div class="warn-box">
+    <strong>Context length</strong> — Original: ~512 tokens. 100K+ needs RoPE, ALiBi, ring attention.
+  </div>
+  <div class="warn-box">
+    <strong>Memory &amp; compute</strong> — Large models need enormous resources (GPT-4: est. $100M+).
+  </div>
+  <div class="insight-box" style="margin-top:0.2em;">
+    <strong style="font-size:1.1em;">Active Research</strong>
+    <ul style="margin:0.2em 0 0 0.8em; font-size:1.35em; line-height:1.6;">
+      <li><strong>Efficient attention:</strong> Flash Attention, sparse, linear attention</li>
+      <li><strong>Alternatives:</strong> Mamba (SSMs), RWKV, Hyena</li>
+      <li><strong>Mixture of Experts:</strong> Activate subset of params per token</li>
+    </ul>
+  </div>
+</section>
+
+<!-- SLIDE: THANK YOU -->
+<section>
+  <h2>Thank You!</h2>
+  <h3 style="color:var(--dark); font-weight:400;">Questions?</h3>
+  <div style="margin:0.3em 0;">
+    <span class="presenter ekant">Ekant Kapgate</span>&nbsp;
+    <span class="presenter saransh">Saransh Soni</span>&nbsp;
+    <span class="presenter vineet">Vineet Malewar</span>&nbsp;
+    <span class="presenter yashashav">Yashashav D.K.</span>
+  </div>
+  <h3 style="margin-top:0.3em;">Key Takeaways</h3>
+  <ol style="font-size:0.68em; max-width:90%; margin:0 auto; text-align:left;">
+    <li><strong>Attention replaces recurrence</strong> — enabling massive parallelization</li>
+    <li><strong>Multi-head attention</strong> captures diverse relationships simultaneously</li>
+    <li><strong>Encoder-decoder with masking</strong> enables autoregressive generation</li>
+    <li><strong>Domain-agnostic</strong> — foundation of modern AI across NLP, vision, biology, and more</li>
+  </ol>
+  <div style="margin-top:0.4em; font-size:0.38em; color:var(--gray);">
+    <p><strong>References:</strong> Vaswani et al., "Attention Is All You Need," NeurIPS 2017 | Diagrams adapted from Umar Jamil</p>
+    <p>CMPE 257 — Machine Learning | Prof. Gautam Krishna</p>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  transition: 'slide',
+  transitionSpeed: 'default',
+  center: true,
+  width: 860,
+  height: 700,
+  margin: 0.05,
+  minScale: 0.2,
+  maxScale: 1.5,
+});
+</script>
+</body>
+</html>
