@@ -1,6 +1,6 @@
 # Section 1: Motivation & Big Picture
 
-**Presenter:** Ekant Kapgate
+**Presenter:** Vineet Malewar
 **Slides:** 1-7 (Title, Section Divider, The Sequence Problem, Problems with RNNs, The Key Insight, Transformer Overview, Roadmap)
 
 ---

@@ -1,6 +1,6 @@
 # Section 3: Decoder & Training/Inference
 
-**Presenter:** Vineet Malewar
+**Presenter:** Ekant Kapgate
 **Slides:** 17-25 (Section Divider, Decoder Overview, Masked Attention, Cross-Attention, Linear + Softmax, Training: Teacher Forcing, Autoregressive Inference, Inference Strategies, The Full Picture)
 
 ---

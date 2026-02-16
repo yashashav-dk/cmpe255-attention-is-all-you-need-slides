@@ -112,9 +112,9 @@
 
 **Recap the four key takeaways:**
 
-1. **Attention replaces recurrence** — enabling massive parallelization (Ekant's section)
+1. **Attention replaces recurrence** — enabling massive parallelization (Vineet's section)
 2. **Multi-head attention** captures diverse relationships simultaneously (Saransh's section)
-3. **Encoder-decoder with masking** enables autoregressive generation (Vineet's section)
+3. **Encoder-decoder with masking** enables autoregressive generation (Ekant's section)
 4. **Domain-agnostic** — foundation of modern AI across NLP, vision, biology, and more (this section)
 
 **References:** Vaswani et al., "Attention Is All You Need," NeurIPS 2017 | Diagrams adapted from Umar Jamil
